@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Bar from './components/Bar';
+import './App.css';
 
 function App() {
   const [array, setArray] = useState([]);
@@ -187,98 +188,6 @@ function App() {
     }
   };
 
-  const quickSort = async (low, high) => {
-    if (!isSortingRef.current) return;
-
-    if (low < high) {
-      const pivotIndex = await partition(low, high);
-      if (!isSortingRef.current) return;
-
-      await quickSort(low, pivotIndex - 1);
-      if (!isSortingRef.current) return;
-      await quickSort(pivotIndex + 1, high);
-      if (!isSortingRef.current) return;
-    }
-
-    // Mark all elements as sorted when the entire array is sorted
-    if (low === 0 && high === array.length - 1 && isSortingRef.current) {
-      setArray(prevArray => prevArray.map(bar => ({ ...bar, state: 'sorted' })));
-    }
-  };
-
-  const partition = async (low, high) => {
-    if (!isSortingRef.current) return -1;
-    
-    let currentArray = [...array];
-    const pivot = currentArray[high];
-    let i = low - 1;
-
-    // Highlight pivot
-    currentArray = currentArray.map((bar, index) => ({
-      ...bar,
-      state: index === high ? 'comparing' : bar.state
-    }));
-    setArray([...currentArray]);
-    await delay(animationSpeed);
-    if (!isSortingRef.current) return -1;
-
-    for (let j = low; j < high; j++) {
-      if (!isSortingRef.current) return -1;
-
-      // Highlight current element being compared
-      currentArray = currentArray.map((bar, index) => ({
-        ...bar,
-        state: index === j ? 'comparing' : 
-               (index === high ? 'comparing' : bar.state)
-      }));
-      setArray([...currentArray]);
-      await delay(animationSpeed);
-      if (!isSortingRef.current) return -1;
-
-      if (currentArray[j].value < pivot.value) {
-        i++;
-        
-        // Swap elements
-        const temp = { ...currentArray[i] };
-        currentArray[i] = { ...currentArray[j] };
-        currentArray[j] = temp;
-        
-        // Update array state
-        setArray([...currentArray]);
-        await delay(animationSpeed);
-        if (!isSortingRef.current) return -1;
-      }
-
-      // Reset comparing state for current element
-      currentArray = currentArray.map((bar, index) => ({
-        ...bar,
-        state: index === high ? 'comparing' : bar.state
-      }));
-      setArray([...currentArray]);
-    }
-
-    if (!isSortingRef.current) return -1;
-
-    // Place pivot in its final position
-    const temp = { ...currentArray[i + 1] };
-    currentArray[i + 1] = { ...currentArray[high] };
-    currentArray[high] = temp;
-
-    // Update array state
-    setArray([...currentArray]);
-    await delay(animationSpeed);
-    if (!isSortingRef.current) return -1;
-
-    // Reset comparing state for pivot
-    currentArray = currentArray.map((bar, index) => ({
-      ...bar,
-      state: index === i + 1 ? 'sorted' : bar.state
-    }));
-    setArray([...currentArray]);
-
-    return i + 1;
-  };
-
   const mergeSort = async (currentArray, low, high) => {
     if (!isSortingRef.current) return;
     if (low < high) {
@@ -435,6 +344,112 @@ function App() {
     }
   };
 
+  const partition = async (low, high) => {
+    if (!isSortingRef.current) return -1;
+
+    let currentArray = [...array];
+    const pivot = currentArray[high];
+    let i = low - 1;
+
+    // Initial state update for pivot and range
+    currentArray = currentArray.map((bar, index) => ({
+      ...bar,
+      state: (index >= low && index <= high) ? (index === high ? 'comparing' : 'unsorted') : bar.state
+    }));
+    setArray([...currentArray]);
+    await delay(animationSpeed);
+    if (!isSortingRef.current) return -1;
+
+    for (let j = low; j < high; j++) {
+      if (!isSortingRef.current) return -1;
+
+      // Highlight elements being compared (current element and pivot)
+      currentArray = currentArray.map((bar, index) => ({
+        ...bar,
+        state: (index === j || index === high) ? 'comparing' : 
+               ((index >= low && index <= high) ? 'unsorted' : bar.state)
+      }));
+      setArray([...currentArray]);
+      await delay(animationSpeed);
+      if (!isSortingRef.current) return -1;
+
+      if (currentArray[j].value < pivot.value) {
+        i++;
+        
+        // Swap elements currentArray[i] and currentArray[j]
+        const temp = { ...currentArray[i] };
+        currentArray[i] = { ...currentArray[j] };
+        currentArray[j] = temp;
+
+        // Update array state after swap
+        setArray([...currentArray]);
+        await delay(animationSpeed);
+        if (!isSortingRef.current) return -1;
+      }
+
+      // Reset comparing state for current element, keep pivot highlighted
+      currentArray = currentArray.map((bar, index) => ({
+        ...bar,
+        state: index === high ? 'comparing' : 
+               ((index >= low && index <= high && index !== i + 1) ? 'unsorted' : bar.state)
+      }));
+      setArray([...currentArray]);
+       // Add a small delay after resetting state
+      await delay(animationSpeed / 2);
+    }
+
+    if (!isSortingRef.current) return -1;
+
+    // Place pivot in its final position (swap currentArray[i+1] and currentArray[high])
+    const temp = { ...currentArray[i + 1] };
+    currentArray[i + 1] = { ...currentArray[high] };
+    currentArray[high] = temp;
+
+    // Update array state after final pivot placement swap
+    setArray([...currentArray]);
+    await delay(animationSpeed);
+    if (!isSortingRef.current) return -1;
+
+    // Mark pivot (now at i+1) as sorted and reset others in the partition range
+     currentArray = currentArray.map((bar, index) => ({
+      ...bar,
+      state: index === i + 1 ? 'sorted' : 
+             ((index >= low && index <= high) ? 'unsorted' : bar.state)
+    }));
+    setArray([...currentArray]);
+    await delay(animationSpeed);
+
+    return i + 1;
+  };
+
+  const quickSort = async (low, high) => {
+    if (!isSortingRef.current) return;
+
+    if (low < high) {
+      const pivotIndex = await partition(low, high);
+      if (!isSortingRef.current) return;
+
+      // Recursively sort the two partitions
+      await quickSort(low, pivotIndex - 1);
+      if (!isSortingRef.current) return;
+      await quickSort(pivotIndex + 1, high);
+      if (!isSortingRef.current) return;
+    }
+     // Mark elements as sorted once their recursive calls are complete (base case for single element or fully sorted partition)
+     else if (low === high && isSortingRef.current) {
+      setArray(prevArray => prevArray.map((bar, index) => ({
+        ...bar,
+        state: index === low ? 'sorted' : bar.state
+      })));
+       await delay(animationSpeed);
+    }
+
+    // Final pass to mark all as sorted at the very end of the initial call
+    if (low === 0 && high === array.length - 1 && isSortingRef.current && array.every(bar => bar.state !== 'unsorted' && bar.state !== 'comparing')) {
+         setArray(prevArray => prevArray.map(bar => ({ ...bar, state: 'sorted' })));
+    }
+  };
+
   const startSorting = async () => {
     if (isSortingRef.current) return;
 
@@ -443,6 +458,7 @@ function App() {
     setIsPaused(false);
     isPausedRef.current = false;
 
+    // Reset array state
     setArray(prevArray => prevArray.map(bar => ({ ...bar, state: 'unsorted' })));
 
     try {
@@ -451,7 +467,10 @@ function App() {
           await bubbleSort();
           break;
         case 'quickSort':
-          await quickSort(0, array.length - 1);
+          // Create a new array for quick sort to work with
+          const newArray = array.map(bar => ({ ...bar }));
+          setArray(newArray);
+          await quickSort(0, newArray.length - 1);
           break;
         case 'mergeSort':
           await mergeSort([...array], 0, array.length - 1);
